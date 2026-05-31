@@ -45,12 +45,16 @@ git --version
 
 ## 快速开始
 
-把 `<repo-url>` 替换为实际 GitHub 仓库地址。
+GitHub 仓库地址：
+
+```text
+https://github.com/jianghuiyou/brain-atlas-3d
+```
 
 ### macOS / Linux
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/jianghuiyou/brain-atlas-3d.git
 cd brain-atlas-3d
 npm install
 npm run download:brain-glb
@@ -62,7 +66,7 @@ npm run dev
 在 `PowerShell` 或 `Windows Terminal` 中执行：
 
 ```powershell
-git clone <repo-url>
+git clone https://github.com/jianghuiyou/brain-atlas-3d.git
 cd brain-atlas-3d
 npm install
 npm run download:brain-glb
