@@ -93,15 +93,17 @@ export function BrainScene(props: BrainSceneProps) {
   return (
     <div className="scene-shell">
       <Canvas
+        dpr={[1, 2]}
+        gl={{ antialias: true }}
         shadows={false}
-        camera={{ position: defaultCameraPosition.toArray(), fov: 42, near: 0.1, far: 100 }}
+        camera={{ position: defaultCameraPosition.toArray(), fov: 38, near: 0.1, far: 100 }}
         onPointerMissed={() => props.onSelectRegion('whole-brain')}
       >
-        <color attach="background" args={['#080b12']} />
-        <ambientLight intensity={1.28} />
-        <hemisphereLight args={['#ffffff', '#d8d4cf', 0.92]} />
-        <directionalLight position={[2, 4, 3]} intensity={0.68} />
-        <directionalLight position={[-3, 2, -2]} intensity={0.26} />
+        <color attach="background" args={['#e7e3dc']} />
+        <ambientLight intensity={1.42} />
+        <hemisphereLight args={['#ffffff', '#d7d1c8', 1.05]} />
+        <directionalLight position={[2.5, 4, 3]} intensity={0.58} />
+        <directionalLight position={[-3, 2.2, -2]} intensity={0.32} />
         <BrainModel {...props} />
         <CameraController
           controlsRef={controlsRef}

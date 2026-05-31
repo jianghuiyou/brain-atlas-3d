@@ -12,7 +12,7 @@ export interface RegionGeometryConfig {
   shape: 'sphere' | 'capsule' | 'tube'
 }
 
-export const defaultCameraPosition = new THREE.Vector3(0.4, 2.2, 7.2)
+export const defaultCameraPosition = new THREE.Vector3(0.32, 1.9, 6.4)
 export const defaultCameraTarget = new THREE.Vector3(0, 0.25, 0)
 
 export const regionFocusTargets: Partial<Record<BrainRegionId, [number, number, number]>> = {

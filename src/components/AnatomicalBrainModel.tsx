@@ -318,10 +318,11 @@ export function AnatomicalBrainModel({
         material.opacity = Math.max(0.98, opacity / 100)
         material.depthWrite = true
         material.depthTest = true
-        material.color.set(activeBySelection ? '#e88d84' : '#c9c7c1')
-        material.roughness = activeBySelection ? 0.7 : 0.82
-        material.emissive = new THREE.Color(activeBySelection || active ? '#3c1c19' : '#34312d')
-        material.emissiveIntensity = activeBySelection ? 0.1 : active ? 0.08 : 0.06
+        material.color.set(activeBySelection ? '#ef958c' : '#d7d2ca')
+        material.roughness = activeBySelection ? 0.66 : 0.76
+        material.metalness = 0.02
+        material.emissive = new THREE.Color(activeBySelection || active ? '#4a211f' : '#38342f')
+        material.emissiveIntensity = activeBySelection ? 0.08 : active ? 0.06 : 0.04
         material.needsUpdate = true
       })
     })
