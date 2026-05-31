@@ -4,7 +4,7 @@
 
 > 本项目用于教育学习，不是医学诊断工具，也不是临床级解剖模型。
 
-![Brain Atlas 3D 项目预览](docs/preview.svg)
+![Brain Atlas 3D 项目预览](docs/preview.png)
 
 ## 功能特性
 
