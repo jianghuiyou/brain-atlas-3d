@@ -5,13 +5,7 @@
 > 本项目用于教育学习，不是医学诊断工具，也不是临床级解剖模型。
 
 ## 在线体验
-
-公网体验地址：
-
 https://jianghuiyou.github.io/brain-atlas-3d/
-
-如果页面暂时无法访问，请确认 GitHub 仓库的 `Settings` -> `Pages` 已将 `Source` 设置为 `GitHub Actions`，并等待最新一次部署完成。
-
 ## 功能特性
 
 - 3D 交互：拖拽旋转、滚轮缩放、点击脑区、自动聚焦、高亮和重置视角。
