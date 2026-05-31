@@ -4,7 +4,13 @@
 
 > 本项目用于教育学习，不是医学诊断工具，也不是临床级解剖模型。
 
-![Brain Atlas 3D 项目预览](docs/preview.png)
+## 在线体验
+
+公网体验地址：
+
+https://jianghuiyou.github.io/brain-atlas-3d/
+
+如果页面暂时无法访问，请确认 GitHub 仓库的 `Settings` -> `Pages` 已将 `Source` 设置为 `GitHub Actions`，并等待最新一次部署完成。
 
 ## 功能特性
 
@@ -49,9 +55,7 @@ git --version
 
 GitHub 仓库地址：
 
-```text
 https://github.com/jianghuiyou/brain-atlas-3d
-```
 
 ### macOS / Linux
 
@@ -128,6 +132,26 @@ npm run preview
 ```bash
 npm run lint
 ```
+
+## 公网部署
+
+本项目已提供 GitHub Pages 自动部署配置：
+
+```text
+.github/workflows/deploy.yml
+```
+
+部署流程：
+
+- 推送代码到 `main` 分支。
+- GitHub Actions 自动执行 `npm ci`。
+- 自动执行 `npm run download:brain-glb` 生成真实大脑 `GLB` 模型。
+- 自动执行 `npm run build` 构建静态站点。
+- 自动发布 `dist/` 到 GitHub Pages。
+
+首次启用时，需要在仓库页面进入 `Settings` -> `Pages`，将 `Source` 设置为 `GitHub Actions`。
+
+Vite 在 GitHub Pages 构建时会使用 `/brain-atlas-3d/` 作为资源基础路径；本地开发仍使用 `/`，不影响 `localhost` 运行。
 
 ## 3D 模型说明
 
