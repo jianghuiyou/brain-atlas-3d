@@ -5,9 +5,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import type { BrainRegionId, ViewMode } from '../types/brain'
 
-const LOCAL_BRAIN_GLB_URL = '/models/brain-atlas.glb'
-const LOCAL_NIH_STL_URL = '/models/nih-hra-allen-brain.stl'
-const MODEL_MANIFEST_URL = '/models/model-manifest.json'
+const modelBaseUrl = import.meta.env.BASE_URL
+const LOCAL_BRAIN_GLB_URL = `${modelBaseUrl}models/brain-atlas.glb`
+const LOCAL_NIH_STL_URL = `${modelBaseUrl}models/nih-hra-allen-brain.stl`
+const MODEL_MANIFEST_URL = `${modelBaseUrl}models/model-manifest.json`
 
 interface ModelManifest {
   brainAtlasGlb?: boolean
