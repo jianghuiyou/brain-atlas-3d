@@ -82,8 +82,10 @@ export function BrainModel({
 }: BrainModelProps) {
   const innerMode = viewMode === 'inner'
   const [anatomicalReady, setAnatomicalReady] = useState(false)
+  const [anatomicalFailed, setAnatomicalFailed] = useState(false)
   const selectedConfig = regionConfigs.find((config) => config.id === selectedRegionId)
   const outerOpacity = innerMode ? 0.22 : opacity / 100
+  const showFallback = anatomicalFailed && !anatomicalReady
 
   return (
     <group rotation={[-0.08, -0.22, 0]}>
@@ -93,11 +95,12 @@ export function BrainModel({
         viewMode={viewMode}
         opacity={opacity}
         onLoadStateChange={setAnatomicalReady}
+        onLoadFailureChange={setAnatomicalFailed}
         onSelectRegion={onSelectRegion}
         onHoverRegion={onHoverRegion}
       />
       {anatomicalReady && <SelectedRegionLocator selectedRegionId={selectedRegionId} />}
-      {!anatomicalReady && (
+      {showFallback && (
         <CorticalShell
           selectedRegionId={selectedRegionId}
           hoveredRegionId={hoveredRegionId}
@@ -106,8 +109,8 @@ export function BrainModel({
           onHoverRegion={onHoverRegion}
         />
       )}
-      {!anatomicalReady && <GyriLines innerMode={innerMode} />}
-      {!anatomicalReady && regionConfigs.map((config) => {
+      {showFallback && <GyriLines innerMode={innerMode} />}
+      {showFallback && regionConfigs.map((config) => {
           const visible = shouldShowRegion(config.id, viewMode)
           const relatedToSelection = selectedConfig?.layer === config.layer || selectedRegionId === 'whole-brain'
           const emphasized =
@@ -129,7 +132,7 @@ export function BrainModel({
             />
           )
         })}
-      {!anatomicalReady && (
+      {showFallback && (
         <BrainLabels selectedRegionId={selectedRegionId} hoveredRegionId={hoveredRegionId} viewMode={viewMode} />
       )}
     </group>

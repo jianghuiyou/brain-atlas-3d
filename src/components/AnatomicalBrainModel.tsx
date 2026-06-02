@@ -63,6 +63,7 @@ interface AnatomicalBrainModelProps {
   viewMode: ViewMode
   opacity: number
   onLoadStateChange: (ready: boolean) => void
+  onLoadFailureChange?: (failed: boolean) => void
   onSelectRegion: (id: BrainRegionId) => void
   onHoverRegion: (id: BrainRegionId | null) => void
 }
@@ -73,12 +74,16 @@ export function AnatomicalBrainModel({
   viewMode,
   opacity,
   onLoadStateChange,
+  onLoadFailureChange,
   onSelectRegion,
   onHoverRegion,
 }: AnatomicalBrainModelProps) {
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null)
   const [model, setModel] = useState<THREE.Object3D | null>(null)
   const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    onLoadFailureChange?.(failed)
+  }, [failed, onLoadFailureChange])
   const active = selectedRegionId === 'whole-brain' || hoveredRegionId === 'whole-brain'
   const innerMode = viewMode === 'inner'
   const pickRegionFromObject = (object: THREE.Object3D): BrainRegionId => {
