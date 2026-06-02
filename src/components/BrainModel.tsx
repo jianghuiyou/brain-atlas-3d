@@ -17,6 +17,8 @@ interface BrainModelProps {
   opacity: number
   onSelectRegion: (id: BrainRegionId) => void
   onHoverRegion: (id: BrainRegionId | null) => void
+  onLoadProgressChange?: (progress: { loaded: number; total: number } | null) => void
+  onLoadReadyChange?: (ready: boolean) => void
 }
 
 function GyriLines({ innerMode }: { innerMode: boolean }) {
@@ -79,6 +81,8 @@ export function BrainModel({
   opacity,
   onSelectRegion,
   onHoverRegion,
+  onLoadProgressChange,
+  onLoadReadyChange,
 }: BrainModelProps) {
   const innerMode = viewMode === 'inner'
   const [anatomicalReady, setAnatomicalReady] = useState(false)
@@ -87,6 +91,11 @@ export function BrainModel({
   const outerOpacity = innerMode ? 0.22 : opacity / 100
   const showFallback = anatomicalFailed && !anatomicalReady
 
+  const handleAnatomicalReady = (ready: boolean) => {
+    setAnatomicalReady(ready)
+    onLoadReadyChange?.(ready)
+  }
+
   return (
     <group rotation={[-0.08, -0.22, 0]}>
       <AnatomicalBrainModel
@@ -94,8 +103,9 @@ export function BrainModel({
         hoveredRegionId={hoveredRegionId}
         viewMode={viewMode}
         opacity={opacity}
-        onLoadStateChange={setAnatomicalReady}
+        onLoadStateChange={handleAnatomicalReady}
         onLoadFailureChange={setAnatomicalFailed}
+        onLoadProgressChange={onLoadProgressChange}
         onSelectRegion={onSelectRegion}
         onHoverRegion={onHoverRegion}
       />

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import * as THREE from 'three'
 import type { ThreeEvent } from '@react-three/fiber'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 import type { BrainRegionId, ViewMode } from '../types/brain'
 
@@ -64,6 +65,7 @@ interface AnatomicalBrainModelProps {
   opacity: number
   onLoadStateChange: (ready: boolean) => void
   onLoadFailureChange?: (failed: boolean) => void
+  onLoadProgressChange?: (progress: { loaded: number; total: number } | null) => void
   onSelectRegion: (id: BrainRegionId) => void
   onHoverRegion: (id: BrainRegionId | null) => void
 }
@@ -75,6 +77,7 @@ export function AnatomicalBrainModel({
   opacity,
   onLoadStateChange,
   onLoadFailureChange,
+  onLoadProgressChange,
   onSelectRegion,
   onHoverRegion,
 }: AnatomicalBrainModelProps) {
@@ -101,6 +104,7 @@ export function AnatomicalBrainModel({
   useEffect(() => {
     let cancelled = false
     const gltfLoader = new GLTFLoader()
+    gltfLoader.setMeshoptDecoder(MeshoptDecoder)
     const stlLoader = new STLLoader()
 
     function cloneMaterial(material: THREE.Material | THREE.Material[]) {
@@ -203,7 +207,41 @@ export function AnatomicalBrainModel({
             throw new Error(`GLB load failed: ${response.status}`)
           }
 
-          const buffer = await response.arrayBuffer()
+          const totalHeader = response.headers.get('content-length')
+          const total = totalHeader ? Number.parseInt(totalHeader, 10) : 0
+          let buffer: ArrayBuffer
+
+          if (response.body && total > 0) {
+            const reader = response.body.getReader()
+            const chunks: Uint8Array[] = []
+            let loaded = 0
+            onLoadProgressChange?.({ loaded: 0, total })
+
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              if (value) {
+                chunks.push(value)
+                loaded += value.byteLength
+                if (!cancelled) {
+                  onLoadProgressChange?.({ loaded, total })
+                }
+              }
+            }
+
+            const merged = new Uint8Array(loaded)
+            let offset = 0
+            for (const chunk of chunks) {
+              merged.set(chunk, offset)
+              offset += chunk.byteLength
+            }
+            buffer = merged.buffer
+          } else {
+            buffer = await response.arrayBuffer()
+          }
+
+          if (cancelled) return
           gltfLoader.parse(
             buffer,
             '',
@@ -213,17 +251,20 @@ export function AnatomicalBrainModel({
               normalizeObject(root)
               setModel(root)
               setGeometry(null)
+              onLoadProgressChange?.(null)
               onLoadStateChange(true)
             },
             () => {
               if (cancelled) return
               setFailed(true)
+              onLoadProgressChange?.(null)
               onLoadStateChange(false)
             },
           )
         } catch {
           if (!cancelled) {
             setFailed(true)
+            onLoadProgressChange?.(null)
             onLoadStateChange(false)
           }
         }

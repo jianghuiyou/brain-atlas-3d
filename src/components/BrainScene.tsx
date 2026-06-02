@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
@@ -78,6 +78,8 @@ function CameraController({
 export function BrainScene(props: BrainSceneProps) {
   const webglAvailable = useMemo(() => isWebGLAvailable(), [])
   const controlsRef = useRef<OrbitControlsImpl | null>(null)
+  const [progress, setProgress] = useState<{ loaded: number; total: number } | null>(null)
+  const [ready, setReady] = useState(false)
 
   if (!webglAvailable) {
     return (
@@ -89,6 +91,13 @@ export function BrainScene(props: BrainSceneProps) {
       />
     )
   }
+
+  const showLoadingOverlay = !ready
+  const percent = progress && progress.total > 0
+    ? Math.min(100, Math.round((progress.loaded / progress.total) * 100))
+    : null
+  const loadedMb = progress ? (progress.loaded / 1024 / 1024).toFixed(2) : null
+  const totalMb = progress && progress.total ? (progress.total / 1024 / 1024).toFixed(2) : null
 
   return (
     <div className="scene-shell">
@@ -104,7 +113,11 @@ export function BrainScene(props: BrainSceneProps) {
         <hemisphereLight args={['#ffffff', '#d7d1c8', 1.05]} />
         <directionalLight position={[2.5, 4, 3]} intensity={0.58} />
         <directionalLight position={[-3, 2.2, -2]} intensity={0.32} />
-        <BrainModel {...props} />
+        <BrainModel
+          {...props}
+          onLoadProgressChange={setProgress}
+          onLoadReadyChange={setReady}
+        />
         <CameraController
           controlsRef={controlsRef}
           selectedRegionId={props.selectedRegionId}
@@ -121,6 +134,25 @@ export function BrainScene(props: BrainSceneProps) {
           target={defaultCameraTarget.toArray()}
         />
       </Canvas>
+      {showLoadingOverlay && (
+        <div className="scene-loading-overlay" role="status" aria-live="polite">
+          <div className="scene-loading-card">
+            <div className="scene-loading-spinner" aria-hidden />
+            <p className="scene-loading-title">3D 解剖大脑模型加载中</p>
+            <div className="scene-loading-bar">
+              <div
+                className="scene-loading-bar-fill"
+                style={{ width: percent != null ? `${percent}%` : '12%' }}
+              />
+            </div>
+            <p className="scene-loading-meta">
+              {percent != null
+                ? `${percent}%${loadedMb && totalMb ? ` · ${loadedMb} / ${totalMb} MB` : ''}`
+                : '正在请求模型，首次加载受网络环境影响可能较慢，请稍候…'}
+            </p>
+          </div>
+        </div>
+      )}
       <p className="scene-help">拖拽旋转，滚轮缩放，点击脑区查看解释。</p>
     </div>
   )

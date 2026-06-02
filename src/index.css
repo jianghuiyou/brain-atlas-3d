@@ -159,6 +159,78 @@ a {
   backdrop-filter: blur(12px);
 }
 
+.scene-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(231, 227, 220, 0.78);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.scene-loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+  max-width: 360px;
+  padding: 20px 24px;
+  border: 1px solid rgba(51, 44, 40, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 252, 247, 0.94);
+  box-shadow: 0 16px 40px rgba(40, 30, 22, 0.12);
+  color: #3a322c;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.scene-loading-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid rgba(190, 110, 90, 0.22);
+  border-top-color: #c66a59;
+  animation: scene-loading-spin 0.9s linear infinite;
+}
+
+@keyframes scene-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+.scene-loading-title {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #3a322c;
+}
+
+.scene-loading-bar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(51, 44, 40, 0.1);
+  overflow: hidden;
+}
+
+.scene-loading-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #d68372, #c66a59);
+  border-radius: inherit;
+  transition: width 0.18s ease-out;
+}
+
+.scene-loading-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b5e54;
+}
+
 .brain-label {
   display: inline-flex;
   padding: 4px 8px;

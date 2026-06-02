@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 Object.defineProperty(globalThis, 'navigator', {
@@ -8,6 +8,11 @@ Object.defineProperty(globalThis, 'navigator', {
 })
 
 const { dkFunctionalMap, runPipeline } = await import('freesurfer-to-glb')
+const { NodeIO } = await import('@gltf-transform/core')
+const { EXTMeshoptCompression } = await import('@gltf-transform/extensions')
+const { dedup, prune, reorder, quantize, weld } = await import('@gltf-transform/functions')
+const meshoptModule = await import('meshoptimizer')
+const MeshoptEncoder = meshoptModule.MeshoptEncoder ?? meshoptModule.default?.MeshoptEncoder
 
 const outputPath = resolve('public/models/brain-atlas.glb')
 const cacheDir = resolve('.cache/brain-for-web')
@@ -27,6 +32,32 @@ await runPipeline({
   regionMap: dkFunctionalMap,
   targetRadius: 3,
 })
+
+const sizeBefore = statSync(outputPath).size
+console.log(`原始 GLB 大小：${(sizeBefore / 1024 / 1024).toFixed(2)} MB`)
+
+await MeshoptEncoder.ready
+const io = new NodeIO()
+  .registerExtensions([EXTMeshoptCompression])
+  .registerDependencies({ 'meshopt.encoder': MeshoptEncoder })
+
+const document = await io.read(outputPath)
+await document.transform(
+  dedup(),
+  prune(),
+  weld({ tolerance: 0.0001 }),
+  reorder({ encoder: MeshoptEncoder, level: 'medium' }),
+  quantize({ quantizePosition: 14, quantizeNormal: 10, quantizeTexcoord: 12 }),
+)
+
+document
+  .createExtension(EXTMeshoptCompression)
+  .setRequired(true)
+  .setEncoderOptions({ method: EXTMeshoptCompression.EncoderMethod.QUANTIZE })
+
+await io.write(outputPath, document)
+const sizeAfter = statSync(outputPath).size
+console.log(`压缩后 GLB 大小：${(sizeAfter / 1024 / 1024).toFixed(2)} MB（减少 ${(100 * (1 - sizeAfter / sizeBefore)).toFixed(1)}%）`)
 
 writeFileSync(
   manifestPath,
