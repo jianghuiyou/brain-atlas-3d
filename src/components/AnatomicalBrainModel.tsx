@@ -4,23 +4,29 @@ import type { ThreeEvent } from '@react-three/fiber'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
+// 把解剖大脑 GLB 直接以 base64 形式内联进 JS bundle，
+// 这样浏览器拿到 JS 后无需任何额外网络请求即可解析模型。
+import inlineBrainAtlasGlb from '../assets/brain-atlas.glb?inline'
 import type { BrainRegionId, ViewMode } from '../types/brain'
 
 const modelBaseUrl = import.meta.env.BASE_URL
-const LOCAL_BRAIN_GLB_URL = `${modelBaseUrl}models/brain-atlas.glb`
 const LOCAL_NIH_STL_URL = `${modelBaseUrl}models/nih-hra-allen-brain.stl`
 const MODEL_MANIFEST_URL = `${modelBaseUrl}models/model-manifest.json`
 
-// 国内访问 GitHub Pages 出口很慢，优先走 jsDelivr CDN（命中率高、速度通常 1-5 MB/s），
-// 失败再回退到同源资源。仅在生产环境（带子路径）启用 CDN，本地开发依然用本地文件。
-const REMOTE_BRAIN_GLB_URLS =
-  modelBaseUrl === '/brain-atlas-3d/'
-    ? [
-        'https://cdn.jsdelivr.net/gh/jianghuiyou/brain-atlas-3d@main/public/models/brain-atlas.glb',
-        'https://fastly.jsdelivr.net/gh/jianghuiyou/brain-atlas-3d@main/public/models/brain-atlas.glb',
-      ]
-    : []
-const BRAIN_GLB_URL_CANDIDATES = [...REMOTE_BRAIN_GLB_URLS, LOCAL_BRAIN_GLB_URL]
+// 把 Vite 通过 ?inline 注入的 base64 data URL 解码成 ArrayBuffer 供 GLTFLoader.parse 使用。
+function decodeInlineGlb(dataUrl: string): ArrayBuffer {
+  const commaIndex = dataUrl.indexOf(',')
+  if (commaIndex < 0) {
+    throw new Error('Invalid inline GLB data URL')
+  }
+  const base64 = dataUrl.slice(commaIndex + 1)
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return bytes.buffer
+}
 
 interface ModelManifest {
   brainAtlasGlb?: boolean
@@ -197,75 +203,26 @@ export function AnatomicalBrainModel({
     }
 
     async function loadLocalAnatomicalModel() {
-      let manifest: ModelManifest
+      // 解剖大脑 GLB 已经内联进 JS bundle，直接走该分支即可。
+      // manifest 仅用于决定是否回退到 STL（NIH 模型未启用时跳过远程探测）。
+      let manifest: ModelManifest = { brainAtlasGlb: true, nihAnatomicalBrain: false }
 
       try {
         const response = await fetch(MODEL_MANIFEST_URL)
-        manifest = (await response.json()) as ModelManifest
-
-      } catch {
-        if (!cancelled) {
-          setFailed(true)
-          onLoadStateChange(false)
+        if (response.ok) {
+          manifest = (await response.json()) as ModelManifest
         }
-        return
+      } catch {
+        // manifest 拉取失败不影响内联 GLB 渲染
       }
 
       if (manifest.brainAtlasGlb) {
-        let buffer: ArrayBuffer | null = null
-        let lastError: unknown = null
-
-        for (const url of BRAIN_GLB_URL_CANDIDATES) {
-          try {
-            const response = await fetch(url)
-            if (!response.ok) {
-              throw new Error(`GLB load failed (${response.status}): ${url}`)
-            }
-
-            const totalHeader = response.headers.get('content-length')
-            const total = totalHeader ? Number.parseInt(totalHeader, 10) : 0
-
-            if (response.body && total > 0) {
-              const reader = response.body.getReader()
-              const chunks: Uint8Array[] = []
-              let loaded = 0
-              onLoadProgressChange?.({ loaded: 0, total })
-
-              // eslint-disable-next-line no-constant-condition
-              while (true) {
-                const { done, value } = await reader.read()
-                if (done) break
-                if (value) {
-                  chunks.push(value)
-                  loaded += value.byteLength
-                  if (!cancelled) {
-                    onLoadProgressChange?.({ loaded, total })
-                  }
-                }
-              }
-
-              const merged = new Uint8Array(loaded)
-              let offset = 0
-              for (const chunk of chunks) {
-                merged.set(chunk, offset)
-                offset += chunk.byteLength
-              }
-              buffer = merged.buffer
-            } else {
-              buffer = await response.arrayBuffer()
-            }
-
-            break
-          } catch (error) {
-            lastError = error
-            console.warn('[brain-atlas] GLB source failed, trying next:', url, error)
-          }
-        }
-
-        if (cancelled) return
-
-        if (!buffer) {
-          console.error('[brain-atlas] all GLB sources failed', lastError)
+        // 内联 GLB 已经在 JS bundle 里了，直接 base64 → ArrayBuffer 就能解析。
+        let buffer: ArrayBuffer
+        try {
+          buffer = decodeInlineGlb(inlineBrainAtlasGlb)
+        } catch (error) {
+          console.error('[brain-atlas] decode inline GLB failed', error)
           if (!cancelled) {
             setFailed(true)
             onLoadProgressChange?.(null)
@@ -273,6 +230,9 @@ export function AnatomicalBrainModel({
           }
           return
         }
+
+        if (cancelled) return
+        onLoadProgressChange?.({ loaded: buffer.byteLength, total: buffer.byteLength })
 
         try {
           gltfLoader.parse(
