@@ -11,6 +11,17 @@ const LOCAL_BRAIN_GLB_URL = `${modelBaseUrl}models/brain-atlas.glb`
 const LOCAL_NIH_STL_URL = `${modelBaseUrl}models/nih-hra-allen-brain.stl`
 const MODEL_MANIFEST_URL = `${modelBaseUrl}models/model-manifest.json`
 
+// 国内访问 GitHub Pages 出口很慢，优先走 jsDelivr CDN（命中率高、速度通常 1-5 MB/s），
+// 失败再回退到同源资源。仅在生产环境（带子路径）启用 CDN，本地开发依然用本地文件。
+const REMOTE_BRAIN_GLB_URLS =
+  modelBaseUrl === '/brain-atlas-3d/'
+    ? [
+        'https://cdn.jsdelivr.net/gh/jianghuiyou/brain-atlas-3d@main/public/models/brain-atlas.glb',
+        'https://fastly.jsdelivr.net/gh/jianghuiyou/brain-atlas-3d@main/public/models/brain-atlas.glb',
+      ]
+    : []
+const BRAIN_GLB_URL_CANDIDATES = [...REMOTE_BRAIN_GLB_URLS, LOCAL_BRAIN_GLB_URL]
+
 interface ModelManifest {
   brainAtlasGlb?: boolean
   nihAnatomicalBrain?: boolean
@@ -201,47 +212,69 @@ export function AnatomicalBrainModel({
       }
 
       if (manifest.brainAtlasGlb) {
-        try {
-          const response = await fetch(LOCAL_BRAIN_GLB_URL)
-          if (!response.ok) {
-            throw new Error(`GLB load failed: ${response.status}`)
-          }
+        let buffer: ArrayBuffer | null = null
+        let lastError: unknown = null
 
-          const totalHeader = response.headers.get('content-length')
-          const total = totalHeader ? Number.parseInt(totalHeader, 10) : 0
-          let buffer: ArrayBuffer
+        for (const url of BRAIN_GLB_URL_CANDIDATES) {
+          try {
+            const response = await fetch(url)
+            if (!response.ok) {
+              throw new Error(`GLB load failed (${response.status}): ${url}`)
+            }
 
-          if (response.body && total > 0) {
-            const reader = response.body.getReader()
-            const chunks: Uint8Array[] = []
-            let loaded = 0
-            onLoadProgressChange?.({ loaded: 0, total })
+            const totalHeader = response.headers.get('content-length')
+            const total = totalHeader ? Number.parseInt(totalHeader, 10) : 0
 
-            // eslint-disable-next-line no-constant-condition
-            while (true) {
-              const { done, value } = await reader.read()
-              if (done) break
-              if (value) {
-                chunks.push(value)
-                loaded += value.byteLength
-                if (!cancelled) {
-                  onLoadProgressChange?.({ loaded, total })
+            if (response.body && total > 0) {
+              const reader = response.body.getReader()
+              const chunks: Uint8Array[] = []
+              let loaded = 0
+              onLoadProgressChange?.({ loaded: 0, total })
+
+              // eslint-disable-next-line no-constant-condition
+              while (true) {
+                const { done, value } = await reader.read()
+                if (done) break
+                if (value) {
+                  chunks.push(value)
+                  loaded += value.byteLength
+                  if (!cancelled) {
+                    onLoadProgressChange?.({ loaded, total })
+                  }
                 }
               }
+
+              const merged = new Uint8Array(loaded)
+              let offset = 0
+              for (const chunk of chunks) {
+                merged.set(chunk, offset)
+                offset += chunk.byteLength
+              }
+              buffer = merged.buffer
+            } else {
+              buffer = await response.arrayBuffer()
             }
 
-            const merged = new Uint8Array(loaded)
-            let offset = 0
-            for (const chunk of chunks) {
-              merged.set(chunk, offset)
-              offset += chunk.byteLength
-            }
-            buffer = merged.buffer
-          } else {
-            buffer = await response.arrayBuffer()
+            break
+          } catch (error) {
+            lastError = error
+            console.warn('[brain-atlas] GLB source failed, trying next:', url, error)
           }
+        }
 
-          if (cancelled) return
+        if (cancelled) return
+
+        if (!buffer) {
+          console.error('[brain-atlas] all GLB sources failed', lastError)
+          if (!cancelled) {
+            setFailed(true)
+            onLoadProgressChange?.(null)
+            onLoadStateChange(false)
+          }
+          return
+        }
+
+        try {
           gltfLoader.parse(
             buffer,
             '',

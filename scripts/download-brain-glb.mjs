@@ -10,9 +10,10 @@ Object.defineProperty(globalThis, 'navigator', {
 const { dkFunctionalMap, runPipeline } = await import('freesurfer-to-glb')
 const { NodeIO } = await import('@gltf-transform/core')
 const { EXTMeshoptCompression } = await import('@gltf-transform/extensions')
-const { dedup, prune, reorder, quantize, weld } = await import('@gltf-transform/functions')
+const { dedup, prune, reorder, quantize, simplify, weld } = await import('@gltf-transform/functions')
 const meshoptModule = await import('meshoptimizer')
 const MeshoptEncoder = meshoptModule.MeshoptEncoder ?? meshoptModule.default?.MeshoptEncoder
+const MeshoptSimplifier = meshoptModule.MeshoptSimplifier ?? meshoptModule.default?.MeshoptSimplifier
 
 const outputPath = resolve('public/models/brain-atlas.glb')
 const cacheDir = resolve('.cache/brain-for-web')
@@ -37,6 +38,7 @@ const sizeBefore = statSync(outputPath).size
 console.log(`原始 GLB 大小：${(sizeBefore / 1024 / 1024).toFixed(2)} MB`)
 
 await MeshoptEncoder.ready
+await MeshoptSimplifier.ready
 const io = new NodeIO()
   .registerExtensions([EXTMeshoptCompression])
   .registerDependencies({ 'meshopt.encoder': MeshoptEncoder })
@@ -46,6 +48,7 @@ await document.transform(
   dedup(),
   prune(),
   weld({ tolerance: 0.0001 }),
+  simplify({ simplifier: MeshoptSimplifier, ratio: 0.5, error: 0.001 }),
   reorder({ encoder: MeshoptEncoder, level: 'medium' }),
   quantize({ quantizePosition: 14, quantizeNormal: 10, quantizeTexcoord: 12 }),
 )

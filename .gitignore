@@ -25,6 +25,8 @@ public/models/*.gltf
 public/models/*.bin
 !public/models/.gitkeep
 !public/models/model-manifest.json
+# Compressed atlas GLB is small (<2 MB) and committed for jsDelivr CDN delivery
+!public/models/brain-atlas.glb
 
 # Environment and local overrides
 *.local
