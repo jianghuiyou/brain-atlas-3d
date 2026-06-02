@@ -6,9 +6,7 @@
 
 ## 在线体验
 
-https://jianghuiyou.github.io/brain-atlas-3d/
-
-如果页面暂时无法访问，请确认 GitHub 仓库的 `Settings` -> `Pages` 已将 `Source` 设置为 `GitHub Actions`，并等待最新一次部署完成。
+在线访问：https://jianghuiyou.github.io/brain-atlas-3d/ （直接打开网页即可体验，无需登录或额外配置）
 
 ![Brain Atlas 3D 项目预览](docs/preview.png)
 
